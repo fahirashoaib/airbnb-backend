@@ -4,7 +4,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const listingsRouter = require('./routes/listings');
+const bookingsRouter = require('./routes/booking');
+const usersRouter = require('./routes/user');
 const Listing = require('./models/Listings');
+
 const app = express();
 
 dotenv.config();
@@ -20,6 +23,8 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
 
 // Routes
 app.use('/api/listings', listingsRouter);
+app.use('/api/bookings', bookingsRouter);
+app.use('/api/users', usersRouter);
 
 // Start server
 const PORT = process.env.PORT || 5000;

@@ -1,4 +1,4 @@
-// models/listing.js
+// models/Listings.js
 const mongoose = require('mongoose');
 
 const listingSchema = new mongoose.Schema({
@@ -9,6 +9,7 @@ const listingSchema = new mongoose.Schema({
     imageUrl: [{ type: String }]
 });
 
+//properties
 const Listing = mongoose.model('Listing', listingSchema,'Listings');
 
 module.exports = Listing;
