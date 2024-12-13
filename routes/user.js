@@ -3,11 +3,21 @@ const express = require('express');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const authenticateToken = require('../middleware/authenticateToken');
+const { check, validationResult } = require('express-validator');
 
 const router = express.Router();
 
-// User registration
-router.post('/signup', async (req, res) => {
+// User registration with validation
+router.post('/signup', [
+    check('name', 'Name is required').notEmpty(),
+    check('email', 'Valid email is required').isEmail(),
+    check('password', 'Password must be 6+ characters').isLength({ min: 6 })
+    ], async (req, res) => {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()){
+        return res.status(400).json({ errors: errors.array() })
+    }
     const { name, email, password } = req.body;
     try {
         const userExists = await User.findOne({ email });
@@ -50,5 +60,26 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
+
+// Update user details
+router.patch('/:id', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.userId !== req.params.id) return res.status(403).send('Forbidden');
+
+        const updates = req.body;
+        if (updates.password) {
+            updates.password = await bcrypt.hash(updates.password, 10);
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(req.params.id, updates, { new: true });
+        if (!updatedUser) return res.status(404).send('User not found');
+
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+
 
 module.exports = router;

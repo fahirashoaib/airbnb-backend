@@ -4,18 +4,22 @@ const Booking = require('../models/Booking');
 const Listing = require('../models/Listings');
 const User = require('../models/User');
 const authenticateToken = require('../middleware/authenticateToken');
+const adminCheck = require('../middleware/adminCheck');
 
 const router = express.Router();
 
 // Create a new booking
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     const { userId, listingId, startDate, endDate } = req.body;
     try {
+        // Ensure the authenticated user matches userId
+        if (req.user.userId !== userId) return res.status(403).send('Forbidden');
+
         const listing = await Listing.findById(listingId);
         if (!listing) return res.status(404).send('Listing not found');
 
         const totalAmount = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24) * listing.pricePerNight;
-        
+
         const booking = new Booking({
             userId,
             listingId,
@@ -51,14 +55,13 @@ router.get('/listing/:listingId', async (req, res) => {
     }
 });
 
-// Update booking status
-router.patch('/:id', async (req, res) => {
+// Update booking status (Amin only)
+router.patch('/:id', authenticateToken, adminCheck, async (req, res) => {
     try {
-        const booking = await Booking.findById(req.params.id);
+        const booking = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!booking) return res.status(404).send('Booking not found');
-
-        booking.status = req.body.status || booking.status;
-        await booking.save();
+        // booking.status = req.body.status || booking.status;
+        // await booking.save();
         res.json(booking);
     } catch (err) {
         res.status(500).json({ message: err.message });
