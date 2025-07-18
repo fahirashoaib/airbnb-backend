@@ -1,31 +1,45 @@
 // server.js
+const cookieParser = require("cookie-parser");
+const connectDB = require("./dbConnect");
+const { adminAuth, userAuth } = require("./middleware/auth");
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const listingsRouter = require('./routes/listings');
-const bookingsRouter = require('./routes/booking');
-const usersRouter = require('./routes/user');
-const Listing = require('./models/Listings');
-
 const app = express();
+const dotenv = require('dotenv');
+const cors = require('cors');
+app.use(cors());
 
+app.use(express.json());
 dotenv.config();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT;
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('MongoDB connected'))
-    .catch((err) => console.error('Error connecting to MongoDB:', err));
+// Cookie Parser
+app.use(cookieParser());
+
+// Middleware
+app.get("/admin", adminAuth, (req, res) => res.send("Admin Route"));
+app.get("/user", userAuth, (req, res) => res.send("User Route"));
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+
+//Connecting the Database
+connectDB();
+
 
 // Routes
-app.use('/api/listings', listingsRouter);
-app.use('/api/bookings', bookingsRouter);
-app.use('/api/users', usersRouter);
+app.use("/api/Auth", require("./routes/user"));
+app.use('/api/Auth', require('./routes/listings'));
+app.use('/api/Auth', require('./routes/booking'));
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const server = app.listen(PORT, () =>
+  console.log(`Server Connected to port ${PORT}`)
+)
+
+// Handling Error
+process.on("unhandledRejection", err => {
+  console.log(`An error occurred: ${err.message}`)
+  server.close(() => process.exit(1))
+})
